@@ -25,6 +25,8 @@ psm <- glm(group ~ gender + age + cbct_interval + sagittal_class + tongue_postur
 df$pscore <- psm$fitted.values
 df$pscore
 
+summary(psm)
+
 #matching using optmatch
 ps.pm = pairmatch(psm, data = df) 
 summary(ps.pm)
@@ -48,16 +50,16 @@ df$matched <- as.factor(df$matched)
 
 #histogram of treated, matched control and raw control
 raw_treated <- df[df$matched == 1 & df$group == 1, ]
-hist(matched_treated$pscore)
+hist(raw_treated$pscore)
 
 matched_treated <- df[df$matched == 1 & df$group == 1, ]
 hist(matched_treated$pscore)
 
-matched_control <- df[df$matched == 1 & df$group == 0, ]
-hist(matched_control$pscore)
-
 raw_control <- df[df$group == 0, ]
 hist(raw_control$pscore)
+
+matched_control <- df[df$matched == 1 & df$group == 0, ]
+hist(matched_control$pscore)
 
 #jitter plot of matched and unmatched data
 ggplot(df, aes(x = pscore, y = group, color = matched)) +
@@ -105,7 +107,6 @@ set.seed(123)
 gen_match <- GenMatch(Tr = df2_clean$group,
                       X = df2_clean[, c("gender", "age", "cbct_interval", "sagittal_class", "tongue_posture", "Retropalatal_airway_MCA_T0")],
                       wait.generations=10,
-                      #exact = c(TRUE, FALSE, FALSE, FALSE, FALSE, FALSE),
                       M=1, pop.size = 1000)
 
 matched <- Match(Y = df2_clean$Retropalatal_airway_MCA_T1, Tr = df2_clean$group, 
@@ -128,4 +129,25 @@ summary(matched2)
 
 MatchBalance(group ~ gender + age + cbct_interval + sagittal_class + tongue_posture + Retroglossal_airway_MCA_T0, 
                               data = df2_clean, match.out = matched2)
+
+#For Figure 3 and 4
+
+install.packages("MatchIt")
+library(MatchIt)
+
+#load dataset
+ds2 <- read_excel("Airway RME matching data.xlsx")
+
+#column name change
+colnames(ds2) <- c("id", "gender", "age", "cbct_interval", "sagittal_class", "tongue_posture", "group")
+
+#optimal matching without replacement
+matchingdata <- matchit(group ~ gender + age + cbct_interval + sagittal_class + tongue_posture, data = ds2, method = "optimal", ratio = 1)
+summary(matchingdata)
+
+#hist plot
+plot(matchingdata, type ="hist")
+#jitter plot
+plot(matchingdata, type ="jitter")
+
 
